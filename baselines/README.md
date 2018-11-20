@@ -1,7 +1,7 @@
 1. Setup virtualenv (WITH Python3)
 	```
     pip install virtualenv
-	virtualenv .
+	virtualenv . -p {PYTHON3 PATH}
 	source bin/activate
 	```
 
