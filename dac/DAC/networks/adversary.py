@@ -17,8 +17,9 @@ from torch.distributions import Normal
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# entropy_weight = 0.001 from openAI/imiation
 class Discriminator(nn.Module):
-	def __init__(self, num_inputs, hidden_size=100, lamb=10):
+	def __init__(self, num_inputs, hidden_size=100, lamb=10, entropy_weight=0.001):
 		super(Discriminator, self).__init__()
 
 		self.linear1 = nn.Linear(num_inputs, hidden_size)
@@ -26,7 +27,8 @@ class Discriminator(nn.Module):
 		self.linear3 = nn.Linear(hidden_size, 1)
 		self.linear3.weight.data.mul_(0.1)
 		self.linear3.bias.data.mul_(0.0)
-		self.criterion = nn.BCELoss()
+		self.criterion = nn.BCEWithLogitsLoss()
+		self.entropy_weight = entropy_weight
 		self.optimizer = torch.optim.Adam(self.parameters())
 		self.LAMBDA = lamb # used in gradient penalty
 		self.use_cuda = torch.cuda.is_available()
@@ -37,8 +39,8 @@ class Discriminator(nn.Module):
 		x = torch.tanh(self.linear2(x))
 		# prob = torch.sigmoid(self.linear3(x))
 		# return prob
-		prob = self.linear3(x)
-		return prob
+		out = self.linear3(x)
+		return out
 
 	def reward(self, x):
 		output = self(x)
@@ -48,6 +50,13 @@ class Discriminator(nn.Module):
 	def adjust_adversary_learning_rate(self, lr):
 		for param_group in self.optimizer.param_groups:
 			param_group['lr'] = lr
+
+	def logit_bernoulli_entropy(self, logits):
+		ent = (1. - torch.sigmoid(logits)) * logits - self.logsigmoid(logits)
+		return ent
+
+	def logsigmoid(self, a):
+		return torch.log(torch.sigmoid(a))
 
 	def train(self, replay_buf, expert_buf, iterations, batch_size=100):
 		lr = LearningRate.getInstance().getLR()
@@ -74,20 +83,23 @@ class Discriminator(nn.Module):
 			real = self(expert_state_action)
 
 			gradient_penalty = self._gradient_penalty(state_action, expert_state_action)
+			gen_loss = self.criterion(fake, torch.zeros((state_action.size(0),1)).to(device))
+			expert_loss = self.criterion(real, torch.ones((state_action.size(0), 1)).to(device))
+			logits = torch.cat([fake,real], 0)
+			entropy = np.mean(self.logit_bernoulli_entropy(logits))
+			entropy_loss = -self.entropy_weight * entropy
 
 			self.optimizer.zero_grad()
 			# loss = self.criterion(fake, torch.ones((state_action.size(0), 1)).to(device)) - self.criterion(real, torch.zeros((expert_state_action.size(0), 1)).to(device)) + gradient_penalty
 			# loss = (torch.log(fake).sum() + torch.log(1 - real).sum()) + gradient_penalty
 
 			# I think the pseudo-code loss is wrong. Refer to equation (2) of paper :
-			# They are maximizing the expectation of log(D(s,a)) + log(D(s',a'))
-			# which is equivalent to minimizing -sum(log(D(s,a)) + log(D(s',a')))
-			# + gradient penalty
-			# loss = -(torch.log(fake) + torch.log(1 - real)).sum() + gradient_penalty
-			loss = -(torch.log(1-torch.sigmoid(fake)+1e-8) + torch.log(1-torch.sigmoid(1-real)+1e-8)).sum() + gradient_penalty
+			# MaxD E(D(s,a)) + E(1-D(s',a')) -> minimizing the negative of this
+			total_loss = gen_loss + expert_loss + entropy_loss
 
-			print("Adversary Iteration: " + str(it) + " ---- Loss: " + str(loss))
-			loss.backward()
+			if it == 0 or it == iterations - 1:
+				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss) + " | Gen_loss: " + str(gen_loss) + " | Entropy_loss: " + str(entropy_loss))
+			total_loss.backward()
 			self.optimizer.step()
 
 	# From https://github.com/EmilienDupont/wgan-gp/blob/master/training.py -> _gradient_penalty()

@@ -43,6 +43,8 @@ def main(args):
 	# This may be wrong: since we update the policy every 2nd step of td3.train, we may need to double this
 	iterations = int(num_steps / (batch_size*T))
 
+	evaluate_policy(args.env_id, td3)
+
 	obs = env.reset()
 	for i in range(iterations):
 		# Sample from policy; maybe we don't reset the environment -> since this may bias the policy toward initial observations
