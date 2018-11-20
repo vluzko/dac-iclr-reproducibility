@@ -1,11 +1,11 @@
-1. Setup virtualenv
+1. Setup virtualenv (WITH Python3)
 	```
     pip install virtualenv
 	virtualenv .
 	source bin/activate
 	```
 
-2. Installation (NOTE: need mujoco setup for baselines installation):
+2. Installation (NOTE: need mujoco 1.50 setup for baselines installation):
 	```
     pip install -r requirements.txt
     ```
