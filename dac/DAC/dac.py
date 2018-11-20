@@ -9,7 +9,7 @@ import numpy as np
 
 def argsparser():
     parser = argparse.ArgumentParser("DAC")
-    parser.add_argument('--env_id', help='environment ID', default='Hopper-v2')
+    parser.add_argument('--env_id', help='environment ID', default='Hopper-v1')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--expert_path', type=str, default='trajs/trajs_hopper.h5')
     parser.add_argument('--traj_num', help='Number of Traj', type=int, default=4)

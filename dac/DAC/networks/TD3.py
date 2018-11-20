@@ -103,7 +103,7 @@ class TD3(object):
 		return torch.FloatTensor(next_state).to(device)
 
 	def reward(self, discriminator, states, actions):
-		states_actions = torch.cat([states, actions], 1)
+		states_actions = torch.cat([states, actions], 1).to(device)
 		return discriminator.reward(states_actions)
 
 	def train(self, discriminator, replay_buf, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2,

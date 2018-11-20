@@ -39,8 +39,8 @@ class Discriminator(nn.Module):
 		x = torch.tanh(self.linear2(x))
 		# prob = torch.sigmoid(self.linear3(x))
 		# return prob
-		# out = self.linear3(x)
-		# return out
+		out = self.linear3(x)
+		return out
 
 	def reward(self, x):
 		out = self(x)
@@ -76,8 +76,8 @@ class Discriminator(nn.Module):
 			expert_act = torch.FloatTensor(expert_act).to(device)
 
 			# Predict
-			state_action = torch.cat([state, action], 1)
-			expert_state_action = torch.cat([expert_obs, expert_act], 1)
+			state_action = torch.cat([state, action], 1).to(device)
+			expert_state_action = torch.cat([expert_obs, expert_act], 1).to(device)
 
 			# Prob -> 1 for fake, 0 for real
 			fake = self(state_action)
