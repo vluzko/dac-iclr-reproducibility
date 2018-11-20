@@ -34,7 +34,7 @@ class Discriminator(nn.Module):
 		self.use_cuda = torch.cuda.is_available()
 
 	def forward(self, x):
-		x = x.float()
+		if not self.use_cuda: x = x.float()
 		x = torch.tanh(self.linear1(x))
 		x = torch.tanh(self.linear2(x))
 		# prob = torch.sigmoid(self.linear3(x))

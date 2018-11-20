@@ -23,7 +23,7 @@ class Actor(nn.Module):
 		self.max_action = max_action
 
 	def forward(self, x):
-		x = x.float()
+		if not self.use_cuda: x = x.float()
 		x = torch.relu(self.l1(x))
 		x = torch.relu(self.l2(x))
 		x = self.max_action * torch.tanh(self.l3(x))
@@ -50,7 +50,7 @@ class Critic(nn.Module):
 
 	def forward(self, x, u):
 		xu = torch.cat([x, u], 1)
-		xu = xu.float()
+		if not self.use_cuda: xu = xu.float()
 
 		x1 = F.relu(self.l1(xu))
 		x1 = F.relu(self.l2(x1))
