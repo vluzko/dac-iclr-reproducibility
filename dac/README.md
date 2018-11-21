@@ -18,7 +18,7 @@
     ```
     git clone https://github.com/openai/imitation
     cd imitation
-    python -m scripts/im_pipeline phase=0_sampletrajs spec=pipelines/im_pipeline.yaml
+    python -m scripts/im_pipeline pipelines/im_pipeline.yaml 0_sampletrajs
     cp imitation_runs/modern_stochastic/trajs/* ../DAC/trajs
     ```
 4. Run DAC
