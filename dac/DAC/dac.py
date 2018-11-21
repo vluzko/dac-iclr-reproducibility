@@ -6,6 +6,7 @@ from dataset.mujoco_dset import Mujoco_Dset
 import gym
 import argparse
 import numpy as np
+import torch
 
 def argsparser():
     parser = argparse.ArgumentParser("DAC")
@@ -35,6 +36,7 @@ def main(args):
 
 	# Input dim = state_dim + action_dim
 	discriminator = Discriminator(state_dim + action_dim)
+	if torch.cuda.is_available(): discriminator = discriminator.to('cuda')
 
 	batch_size = 100 #openReview: they state they do batch_size of 100
 	num_steps = 1e6 # 1 million timesteps -> in paper, they go to 1 million timesteps
