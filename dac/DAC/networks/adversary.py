@@ -91,7 +91,7 @@ class Discriminator(nn.Module):
 			# gen_loss = self.criterion(fake, torch.zeros((state_action.size(0),1)).to(device))
 			# expert_loss = self.criterion(real, torch.ones((state_action.size(0), 1)).to(device))
 			gen_loss = self.logsigmoid(fake).to(device)
-			expert_loss = self.logsigmoidminus(real).to(device)
+			expert_loss = (self.logsigmoidminus(real) * expert_weights).to(device)
 
 			logits = torch.cat([fake,real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))
@@ -103,7 +103,7 @@ class Discriminator(nn.Module):
 
 			# I think the pseudo-code loss is wrong. Refer to equation (2) of paper :
 			# MaxD E(D(s,a)) + E(1-D(s',a')) -> minimizing the negative of this
-			total_loss = gen_loss + expert_loss + entropy_loss + gradient_penalty
+			total_loss = (gen_loss + expert_loss).sum() + entropy_loss + gradient_penalty
 
 			if it == 0 or it == iterations - 1:
 				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss) + " | Gen_loss: " + str(gen_loss) + " | Entropy_loss: " + str(entropy_loss))
