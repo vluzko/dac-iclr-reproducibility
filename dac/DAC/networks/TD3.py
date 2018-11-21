@@ -142,7 +142,8 @@ class TD3(object):
 
 			# Compute critic loss
 			critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
-			print("Critic Iteration: " + str(it) + " ---- Loss: " + str(critic_loss))
+			if it == 0 or it == iterations - 1:
+				print("Critic Iteration: " + str(it) + " ---- Loss: " + str(critic_loss))
 			# Optimize the critic
 			self.critic_optimizer.zero_grad()
 			critic_loss.backward()
@@ -153,7 +154,8 @@ class TD3(object):
 
 				# Compute actor loss
 				actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
-				print("Actor Iteration: " + str(it) + " ---- Loss: " + str(actor_loss))
+				if it == 0 or it == iterations - 1 or it == iterations - 2:
+					print("Actor Iteration: " + str(it) + " ---- Loss: " + str(actor_loss))
 				# Optimize the actor
 				self.actor_optimizer.zero_grad()
 				actor_loss.backward()

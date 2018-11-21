@@ -44,6 +44,9 @@ def main(args):
 
 	evaluate_policy(args.env_id, td3)
 
+	evaluate_every = 5000
+	steps_since_eval = 0
+
 	obs = env.reset()
 	while len(actor_replay_buffer.buffer) < num_steps: # Do 1 million timesteps from the environment
 		# Sample from policy; maybe we don't reset the environment -> since this may bias the policy toward initial observations
@@ -52,6 +55,7 @@ def main(args):
 			action = td3.select_action(np.array(obs))
 			next_state, reward, done, _ = env.step(action)
 			actor_replay_buffer.add((obs, action, next_state), done)
+			steps_since_eval += 1
 			if done:
 				actor_replay_buffer.addAbsorbing()
 				obs = env.reset()
@@ -62,7 +66,9 @@ def main(args):
 
 		td3.train(discriminator, actor_replay_buffer, T, batch_size) #discriminator, replay_buf, iterations, batch_size=100
 
-		evaluate_policy(args.env_id, td3)
+		if steps_since_eval >= evaluate_every:
+			steps_since_eval = steps_since_eval % evaluate_every
+			evaluate_policy(args.env_id, td3)
 
 # Runs policy for X episodes and returns average reward
 def evaluate_policy(env_name, policy, eval_episodes=10):
