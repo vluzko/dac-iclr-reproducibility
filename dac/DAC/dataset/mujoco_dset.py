@@ -19,73 +19,75 @@ def load_dataset(filename, limit_trajs, data_subsamp_freq=1):
         exr_B_T = f['r_B_T'][:dset_size,...][...]
         exlen_B = f['len_B'][:dset_size,...][...]
 
-    print ('Expert dataset size: {} transitions ({} trajectories)'.format(exlen_B.sum(), len(exlen_B)))
-    print ('Expert average return:', exr_B_T.sum(axis=1).mean())
+    # print ('Expert dataset size: {} transitions ({} trajectories)'.format(exlen_B.sum(), len(exlen_B)))
+    # print ('Expert average return:', exr_B_T.sum(axis=1).mean())
 
     return exobs_B_T_Do, exa_B_T_Da, exr_B_T
 
 
 class Dset(object):
-    def __init__(self, inputs, labels, weights, num_traj):
-        self.inputs = inputs
-        self.labels = labels
+    def __init__(self, obs, acs, num_traj, absorbing_state, absorbing_action):
+        self.obs = obs
+        self.acs = acs
         self.num_traj = num_traj
-        assert len(self.inputs) == len(self.labels)
-        assert len(self.inputs) == len(weights)
+        assert len(self.obs) == len(self.acs)
         assert self.num_traj > 0
+        self.steps_per_traj = len(self.obs)
 
-        #Calc probabilities from weights
-
-        #If we have n samples (original states and newly added absorbing states)
-        #and t trajectories -> t absorbing states
-
-        # Thus, let p be probability of original sample
-        # p*(n-t) + p*t/n = 1
-
-        n = len(weights)
-        t = self.num_traj
-
-        p = 1.0/(n-t + t/n)
-        self.probabilities = [p * weight for weight in weights]
-        self.indicies = np.arange(len(inputs))
+        self.absorbing_state = absorbing_state
+        self.absorbing_action = absorbing_action
 
     def get_next_batch(self, batch_size):
         assert batch_size <= len(self.inputs)
-        indicies = np.random.choice(self.indicies, batch_size, p=self.probabilities, replace=True)
+        num_samples_per_traj = int(batch_size / self.num_traj)
+        assert num_samples_per_traj*self.num_traj == batch_size
+        N = self.steps_per_traj / num_samples_per_traj # This is the importance weight for
+        j = num_samples_per_traj
+        num_samples_per_traj = num_samples_per_traj - 1 # make room for absorbing
 
-        return self.inputs[indicies, :], self.labels[indicies, :]
+        obs = None
+        acs = None
+        weights = [1 for i in range(batch_size)]
+        while j <= batch_size:
+            weights[j-1] = 1.0/N
+            j = j+ num_samples_per_traj + 1
+
+
+        for i in range(self.num_traj):
+            indicies = np.random.choice(range(self.steps_per_traj*i,self.steps_per_traj*(i+1)), num_samples_per_traj, replace=False)
+
+            if obs is None:
+                obs = np.concatenate((self.obs[indicies, :], self.absorbing_state), axis=0)
+            else:
+                obs = np.concatenate((obs, self.obs[indicies, :], self.absorbing_state), axis=0)
+
+            if acs is None:
+                acs = np.concatenate((self.acs[indicies, :], self.absorbing_action), axis=0)
+            else:
+                acs = np.concatenate((acs, self.acs[indicies, :], self.absorbing_action), axis=0)
+
+        return obs, acs, weights
 
 # This takes in 1 trajectory's observations and actions
 # and adds absorbing state 0-vector with same dimension as observation_space
 # and add absorbing action 0-vector with same dimension as action_space
-def WrapAbsorbingState(env, obs, acs):
-    obs_space = env.observation_space
-    acs_space = env.action_space
-
-    # Use zero matrix as generic absorbing state
-    absorbing_state = np.zeros((1,obs_space.shape[0]),dtype=np.float32)
-    random_action = np.zeros_like(acs_space.sample(),dtype=np.float32).reshape(1, acs_space.shape[0])
-
-    # At terminal state obs[-1], under action acs[-1] we go to absorbing state.
-    new_obs = np.concatenate((obs, absorbing_state))
-    new_acs = np.concatenate((acs, random_action))
-
-    return new_obs, new_acs
+# def WrapAbsorbingState(env, obs, acs):
+#     obs_space = env.observation_space
+#     acs_space = env.action_space
+#
+#     # Use zero matrix as generic absorbing state
+#     absorbing_state = np.zeros((1,obs_space.shape[0]),dtype=np.float32)
+#     zero_action = np.zeros_like(acs_space.sample(),dtype=np.float32).reshape(1, acs_space.shape[0])
+#
+#     # At terminal state obs[-1], under action acs[-1] we go to absorbing state.
+#     new_obs = np.concatenate((obs, absorbing_state))
+#     new_acs = np.concatenate((acs, random_action))
+#
+#     return new_obs, new_acs
 
 class Mujoco_Dset(object):
     def __init__(self, env, expert_path, traj_limitation=-1):
-        temp_obs, temp_acs, rets = load_dataset(expert_path, traj_limitation)
-
-        obs = np.zeros((temp_obs.shape[0], temp_obs.shape[1] + 1, temp_obs.shape[2]))
-        acs = np.zeros((temp_acs.shape[0], temp_acs.shape[1] + 1, temp_acs.shape[2]))
-        n = traj_limitation * (temp_obs.shape[1] + 1)
-        weights = [1 for i in range(n)]
-
-        # iterate through trajectories and add absorbing state
-        # Update importance weights for absorbing states
-        for i in range(temp_obs.shape[0]):
-            obs[i], acs[i] = WrapAbsorbingState(env, temp_obs[i], temp_acs[i])
-            weights[(i+1)*len(obs[i]) - 1] = 1/n
+        obs, acs, rets = load_dataset(expert_path, traj_limitation)
 
         # obs, acs: shape (N, L, ) + S where N = # episodes, L = episode length
         # and S is the environment observation/action space.
@@ -101,11 +103,11 @@ class Mujoco_Dset(object):
         assert len(self.obs) == len(self.acs)
         self.num_traj = len(rets)
         self.num_transition = len(self.obs)
-        self.dset = Dset(self.obs, self.acs, weights, traj_limitation)
+        self.dset = Dset(self.obs, self.acs, traj_limitation)
         self.log_info()
 
     def log_info(self):
-        print("Total trajectorues: %d" % self.num_traj)
+        print("Total trajs: %d" % self.num_traj)
         print("Total transitions: %d" % self.num_transition)
         print("Average returns: %f" % self.avg_ret)
         print("Std for returns: %f" % self.std_ret)

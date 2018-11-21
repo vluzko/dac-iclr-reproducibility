@@ -42,13 +42,10 @@ def main(args):
 	num_steps = 1e6 # 1 million timesteps -> in paper, they go to 1 million timesteps
 	T = 1000 # Trajectory length == T in the pseudo-code; 1000 is stated in openReview
 
-	# This may be wrong: since we update the policy every 2nd step of td3.train, we may need to double this
-	iterations = int(num_steps / (batch_size*T))
-
 	evaluate_policy(args.env_id, td3)
 
 	obs = env.reset()
-	for i in range(iterations):
+	while len(actor_replay_buffer.buffer) < num_steps: # Do 1 million timesteps from the environment
 		# Sample from policy; maybe we don't reset the environment -> since this may bias the policy toward initial observations
 		# obs = env.reset() -> I'm going to make this reset change now
 		for j in range(T):
@@ -56,11 +53,10 @@ def main(args):
 			next_state, reward, done, _ = env.step(action)
 			actor_replay_buffer.add((obs, action, next_state), done)
 			if done:
+				actor_replay_buffer.addAbsorbing()
 				obs = env.reset()
 			else:
 				obs = next_state
-
-		actor_replay_buffer.addAbsorbing() # May be wrong: ask them about absorbing state
 
 		discriminator.train(actor_replay_buffer, expert_buffer, T, batch_size)
 
