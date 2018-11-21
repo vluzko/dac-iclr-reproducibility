@@ -37,8 +37,8 @@ class Discriminator(nn.Module):
 		if not self.use_cuda: x = x.float()
 		x = torch.tanh(self.linear1(x))
 		x = torch.tanh(self.linear2(x))
-		prob = torch.sigmoid(self.linear3(x))
-		return prob
+		# prob = torch.sigmoid(self.linear3(x))
+		# return prob
 		out = self.linear3(x)
 		return out
 
@@ -77,7 +77,7 @@ class Discriminator(nn.Module):
 			expert_obs, expert_act, expert_weights = expert_buf.get_next_batch(batch_size)
 			expert_obs = torch.FloatTensor(expert_obs).to(device)
 			expert_act = torch.FloatTensor(expert_act).to(device)
-			expert_weights = torch.FloatTensor(expert_weights).to(device)
+			expert_weights = torch.FloatTensor(expert_weights).to(device).view(-1, 1)
 
 			# Predict
 			state_action = torch.cat([state, action], 1).to(device)
@@ -90,12 +90,12 @@ class Discriminator(nn.Module):
 			gradient_penalty = self._gradient_penalty(state_action, expert_state_action)
 			# gen_loss = self.criterion(fake, torch.zeros((state_action.size(0),1)).to(device))
 			# expert_loss = self.criterion(real, torch.ones((state_action.size(0), 1)).to(device))
-			gen_loss = self.logsigmoid(fake).to(device)
-			expert_loss = (self.logsigmoidminus(real) * expert_weights).to(device)
+			gen_loss = self.logsigmoidminus(fake).to(device)
+			expert_loss = (self.logsigmoid(real) * expert_weights).to(device)
 
 			logits = torch.cat([fake,real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))
-			entropy_loss = -self.entropy_weight * entropy
+			entropy_loss = self.entropy_weight * entropy
 
 			self.optimizer.zero_grad()
 			# loss = self.criterion(fake, torch.ones((state_action.size(0), 1)).to(device)) - self.criterion(real, torch.zeros((expert_state_action.size(0), 1)).to(device)) + gradient_penalty
@@ -103,10 +103,10 @@ class Discriminator(nn.Module):
 
 			# I think the pseudo-code loss is wrong. Refer to equation (2) of paper :
 			# MaxD E(D(s,a)) + E(1-D(s',a')) -> minimizing the negative of this
-			total_loss = (gen_loss + expert_loss).sum() + entropy_loss + gradient_penalty
+			total_loss = -(gen_loss + expert_loss).sum() + entropy_loss + gradient_penalty
 
 			if it == 0 or it == iterations - 1:
-				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss) + " | Gen_loss: " + str(gen_loss) + " | Entropy_loss: " + str(entropy_loss))
+				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss.sum()) + " | Gen_loss: " + str(gen_loss.sum()) + " | Entropy_loss: " + str(entropy_loss))
 			total_loss.backward()
 			self.optimizer.step()
 

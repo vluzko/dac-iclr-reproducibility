@@ -32,13 +32,13 @@ class Dset(object):
         self.num_traj = num_traj
         assert len(self.obs) == len(self.acs)
         assert self.num_traj > 0
-        self.steps_per_traj = len(self.obs)
+        self.steps_per_traj = int(len(self.obs) / num_traj)
 
         self.absorbing_state = absorbing_state
         self.absorbing_action = absorbing_action
 
     def get_next_batch(self, batch_size):
-        assert batch_size <= len(self.inputs)
+        assert batch_size <= len(self.obs)
         num_samples_per_traj = int(batch_size / self.num_traj)
         assert num_samples_per_traj*self.num_traj == batch_size
         N = self.steps_per_traj / num_samples_per_traj # This is the importance weight for
@@ -54,7 +54,7 @@ class Dset(object):
 
 
         for i in range(self.num_traj):
-            indicies = np.random.choice(range(self.steps_per_traj*i,self.steps_per_traj*(i+1)), num_samples_per_traj, replace=False)
+            indicies = np.sort(np.random.choice(range(self.steps_per_traj*i,self.steps_per_traj*(i+1)), num_samples_per_traj, replace=False))
 
             if obs is None:
                 obs = np.concatenate((self.obs[indicies, :], self.absorbing_state), axis=0)
@@ -103,7 +103,10 @@ class Mujoco_Dset(object):
         assert len(self.obs) == len(self.acs)
         self.num_traj = len(rets)
         self.num_transition = len(self.obs)
-        self.dset = Dset(self.obs, self.acs, traj_limitation)
+
+        absorbing_state = np.zeros((1,env.observation_space.shape[0]),dtype=np.float32)
+        zero_action = np.zeros_like(env.action_space.sample(),dtype=np.float32).reshape(1, env.action_space.shape[0])
+        self.dset = Dset(self.obs, self.acs, traj_limitation, absorbing_state, zero_action)
         self.log_info()
 
     def log_info(self):
