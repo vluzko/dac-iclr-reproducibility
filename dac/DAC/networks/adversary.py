@@ -90,8 +90,8 @@ class Discriminator(nn.Module):
 			gradient_penalty = self._gradient_penalty(state_action, expert_state_action)
 			# gen_loss = self.criterion(fake, torch.zeros((state_action.size(0),1)).to(device))
 			# expert_loss = self.criterion(real, torch.ones((state_action.size(0), 1)).to(device))
-			gen_loss = self.logsigmoidminus(fake).to(device)
-			expert_loss = (self.logsigmoid(real) * expert_weights).to(device)
+			gen_loss = self.logsigmoid(fake).to(device)
+			expert_loss = (self.logsigmoidminus(real) * expert_weights).to(device)
 
 			logits = torch.cat([fake,real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))
