@@ -1,13 +1,13 @@
 # Discriminator-Actor-Critic
 
-1. Setup virtualenv (WITH Python2)
+1. Setup virtualenv (WITH Python2 - you can use the command *which python2* to find the PYTHON2 PATH)
 	```
     pip install virtualenv
 	virtualenv . -p {PYTHON2 PATH}
 	source bin/activate
 	```
 
-2. Installation (NOTE: need mujoco 1.31 setup for gym-v1):
+2. Installation (NOTE: need mujoco 1.31 setup -> download the zip from https://www.roboti.us/ and put the unzipped mjpro131 folder in the ~/.mujoco folder used for the mujoco license for gym-v1):
 	```
     pip install -r requirements.txt
     ```
