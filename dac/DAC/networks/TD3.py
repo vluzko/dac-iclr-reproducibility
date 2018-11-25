@@ -164,6 +164,15 @@ class TD3(object):
 				clip_grad_value_(self.actor.parameters(), self.actor_grad_clipping)
 
 				self.actor_optimizer.step()
+				LearningRate.getInstance().incrementStep()
+				step = LearningRate.getInstance().getStep()
+				if step != 0 and step % self.decay_steps == 0:
+					print("Step=" + str(step) + " -> decay learning rate")
+					LearningRate.getInstance().decay()
+					lr = LearningRate.getInstance().getLR()
+					self.adjust_actor_learning_rate(lr)
+					self.adjust_critic_learning_rate(lr)
+
 
 				# Update the frozen target models
 				for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
@@ -172,14 +181,7 @@ class TD3(object):
 				for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 					target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-		# We do batch 100, 1000 iterations == 100,000 timesteps
-		# But, we only update policy every 2nd time -> 10^5 happens once every train() call
-		# so, we can call this here
 
-		LearningRate.getInstance().decay()
-		lr = LearningRate.getInstance().getLR()
-		self.adjust_actor_learning_rate(lr)
-		self.adjust_critic_learning_rate(lr)
 
 	def save(self, filename, directory):
 		torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))

@@ -83,30 +83,26 @@ class Discriminator(nn.Module):
 			state_action = torch.cat([state, action], 1).to(device)
 			expert_state_action = torch.cat([expert_obs, expert_act], 1).to(device)
 
-			# Prob -> 1 for fake, 0 for real
+			# Prob -> 0 for fake, 1 for real
 			fake = self(state_action)
 			real = self(expert_state_action)
 
 			gradient_penalty = self._gradient_penalty(state_action, expert_state_action)
-			# gen_loss = self.criterion(fake, torch.zeros((state_action.size(0),1)).to(device))
-			# expert_loss = self.criterion(real, torch.ones((state_action.size(0), 1)).to(device))
 			gen_loss = self.logsigmoid(fake).to(device)
 			expert_loss = (self.logsigmoidminus(real) * expert_weights).to(device)
 
 			logits = torch.cat([fake,real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))
-			entropy_loss = self.entropy_weight * entropy
+			entropy_loss = -self.entropy_weight * entropy
 
 			self.optimizer.zero_grad()
-			# loss = self.criterion(fake, torch.ones((state_action.size(0), 1)).to(device)) - self.criterion(real, torch.zeros((expert_state_action.size(0), 1)).to(device)) + gradient_penalty
-			# loss = (torch.log(fake).sum() + torch.log(1 - real).sum()) + gradient_penalty
 
 			# I think the pseudo-code loss is wrong. Refer to equation (2) of paper :
 			# MaxD E(D(s,a)) + E(1-D(s',a')) -> minimizing the negative of this
 			total_loss = -(gen_loss + expert_loss).sum() + entropy_loss + gradient_penalty
 
 			if it == 0 or it == iterations - 1:
-				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss.sum()) + " | Gen_loss: " + str(gen_loss.sum()) + " | Entropy_loss: " + str(entropy_loss))
+				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss.sum()) + " | Gen_loss: " + str(gen_loss.sum()) + " | Fake Prob: " + str(torch.sigmoid(fake[0])) + " | Real Prob: " + str(torch.sigmoid(real[0])))
 			total_loss.backward()
 			self.optimizer.step()
 
