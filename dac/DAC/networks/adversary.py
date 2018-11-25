@@ -83,7 +83,6 @@ class Discriminator(nn.Module):
 			state_action = torch.cat([state, action], 1).to(device)
 			expert_state_action = torch.cat([expert_obs, expert_act], 1).to(device)
 
-			# Prob -> 0 for fake, 1 for real
 			fake = self(state_action)
 			real = self(expert_state_action)
 
