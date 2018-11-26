@@ -86,7 +86,7 @@ class Discriminator(nn.Module):
 			fake = self(state_action)
 			real = self(expert_state_action)
 
-			gradient_penalty = self._gradient_penalty(state_action, expert_state_action)
+			gradient_penalty = self._gradient_penalty(expert_state_action, state_action)
 			gen_loss = self.logsigmoid(fake).to(device)
 			expert_loss = (self.logsigmoidminus(real) * expert_weights).to(device)
 
