@@ -36,7 +36,7 @@ def evaluate_policy(env_name, policy, timestep, eval_episodes=10):
 		rewards.append(r)
 
 	avg_reward = np.mean(rewards)
-	std_dev = np.std(reward)
+	std_dev = np.std(rewards)
 
 	print ("---------------------------------------")
 	print ("Evaluation over %d episodes: %f" % (eval_episodes, avg_reward))
