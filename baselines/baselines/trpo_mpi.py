@@ -20,6 +20,28 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.cg import cg
 from baselines.gail.statistics import stats
 
+# Runs policy for X episodes and returns average reward
+def evaluate_policy(env, policy, timestep, eval_episodes=10):
+	# env = gym.make(env_name)
+	rewards = []
+	for _ in range(eval_episodes):
+		r = 0.
+		obs = env.reset()
+		done = False
+		while not done:
+			action, _ = policy.act(False, obs)
+			obs, reward, done, _ = env.step(action)
+			r += reward
+		rewards.append(r)
+
+	avg_reward = np.mean(rewards)
+	std_dev = np.std(reward)
+
+	print ("---------------------------------------")
+	print ("Evaluation over %d episodes: %f" % (eval_episodes, avg_reward))
+	print ("---------------------------------------")
+	with open("results.csv", "a") as f:
+		f.write(str(timestep) + "," + str(avg_reward) + "," + str(std_dev) + "\n")
 
 def traj_segment_generator(pi, env, reward_giver, horizon, stochastic):
 
@@ -232,7 +254,8 @@ def learn(env, policy_func, reward_giver, expert_dataset, rank,
 
         # Save model
         if rank == 0 and iters_so_far % save_per_iter == 0 and ckpt_dir is not None:
-            util.save_variables(os.path.join(ckpt_dir,task_name + str(timesteps_so_far)),variables=pi.get_variables())
+            util.save_variables(os.path.join(ckpt_dir, task_name + str(timesteps_so_far)), variables=pi.get_variables())
+            evaluate_policy(env, pi, timesteps_so_far)
             fname = os.path.join(ckpt_dir, task_name)
             os.makedirs(os.path.dirname(fname), exist_ok=True)
             saver = tf.train.Saver()
