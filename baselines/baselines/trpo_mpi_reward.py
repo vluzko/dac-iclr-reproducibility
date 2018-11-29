@@ -10,6 +10,7 @@ from collections import deque
 
 import tensorflow as tf
 import numpy as np
+import gym
 
 from common import util
 import baselines.common.tf_util as U
@@ -21,8 +22,8 @@ from baselines.common.cg import cg
 from baselines.gail.statistics import stats
 
 # Runs policy for X episodes and returns average reward
-def evaluate_policy(env, policy, timestep, eval_episodes=10):
-	# env = gym.make(env_name)
+def evaluate_policy(env_name, policy, timestep, eval_episodes=10):
+	env = gym.make(env_name)
 	rewards = []
 	for _ in range(eval_episodes):
 		r = 0.
@@ -133,7 +134,7 @@ def get_reward(ob,ac):
 def get_reward2(ob,ac):
 	return np.log(0.5)-np.log(1.0-0.5)
 
-def learn(env, policy_func, reward_giver, expert_dataset, rank,
+def learn(env, env_name, policy_func, reward_giver, expert_dataset, rank,
 		  pretrained, pretrained_weight, *,
 		  g_step, d_step, entcoeff, save_per_iter,
 		  ckpt_dir, log_dir, timesteps_per_batch, task_name,
@@ -264,7 +265,7 @@ def learn(env, policy_func, reward_giver, expert_dataset, rank,
 		# Save model
 		if rank == 0 and iters_so_far % save_per_iter == 0 and ckpt_dir is not None:
 			util.save_variables(os.path.join(ckpt_dir,task_name + str(timesteps_so_far)),variables=pi.get_variables())
-			evaluate_policy(env, pi, timesteps_so_far)
+			evaluate_policy(env_name, pi, timesteps_so_far)
 			fname = os.path.join(ckpt_dir, task_name)
 			os.makedirs(os.path.dirname(fname), exist_ok=True)
 			saver = tf.train.Saver()
