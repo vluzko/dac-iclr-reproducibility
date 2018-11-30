@@ -71,23 +71,27 @@ def main(args):
 			evaluate_policy(args.env_id, td3)
 
 # Runs policy for X episodes and returns average reward
-def evaluate_policy(env_name, policy, eval_episodes=10):
+def evaluate_policy(env_name, policy, timestep, eval_episodes=10):
 	env = gym.make(env_name)
-	avg_reward = 0.
+	rewards = []
 	for _ in range(eval_episodes):
+		r = 0.
 		obs = env.reset()
 		done = False
 		while not done:
-			action = policy.select_action(np.array(obs))
+			action, _ = policy.act(False, obs)
 			obs, reward, done, _ = env.step(action)
-			avg_reward += reward
+			r += reward
+		rewards.append(r)
 
-	avg_reward /= eval_episodes
+	avg_reward = np.mean(rewards)
+	std_dev = np.std(rewards)
 
 	print ("---------------------------------------")
 	print ("Evaluation over %d episodes: %f" % (eval_episodes, avg_reward))
 	print ("---------------------------------------")
-	return avg_reward
+	with open("results.csv", "a") as f:
+		f.write(str(timestep) + "," + str(avg_reward) + "," + str(std_dev) + "\n")
 
 
 if __name__ == '__main__':
