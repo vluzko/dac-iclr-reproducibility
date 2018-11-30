@@ -68,7 +68,8 @@ def main(args):
 
 		if steps_since_eval >= evaluate_every:
 			steps_since_eval = steps_since_eval % evaluate_every
-			evaluate_policy(args.env_id, td3)
+			evaluate_policy(args.env_id, td3, len(actor_replay_buffer.buffer))
+	evaluate_policy(args.env_id, td3, len(actor_replay_buffer.buffer))
 
 # Runs policy for X episodes and returns average reward
 def evaluate_policy(env_name, policy, timestep, eval_episodes=10):
@@ -79,7 +80,7 @@ def evaluate_policy(env_name, policy, timestep, eval_episodes=10):
 		obs = env.reset()
 		done = False
 		while not done:
-			action, _ = policy.act(False, obs)
+			action, _ = policy.select_action(np.array(obs))
 			obs, reward, done, _ = env.step(action)
 			r += reward
 		rewards.append(r)
