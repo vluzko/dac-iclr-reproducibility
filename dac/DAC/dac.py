@@ -42,7 +42,7 @@ def main(args):
 	num_steps = 1e6 # 1 million timesteps -> in paper, they go to 1 million timesteps
 	T = 1000 # Trajectory length == T in the pseudo-code; 1000 is stated in openReview
 
-	evaluate_policy(args.env_id, td3)
+	evaluate_policy(args.env_id, td3, 0)
 
 	evaluate_every = 5000
 	steps_since_eval = 0
