@@ -9,17 +9,20 @@ import numpy as np
 import torch
 
 def argsparser():
-    parser = argparse.ArgumentParser("DAC")
-    parser.add_argument('--env_id', help='environment ID', default='Hopper-v1')
-    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--expert_path', type=str, default='trajs/trajs_hopper.h5')
-    parser.add_argument('--traj_num', help='Number of Traj', type=int, default=4)
-    return parser.parse_args()
+	parser = argparse.ArgumentParser("DAC")
+	parser.add_argument('--env_id', help='environment ID', default='Hopper-v1')
+	parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+	parser.add_argument('--expert_path', type=str, default='trajs/trajs_hopper.h5')
+	parser.add_argument('--loss', type=str, default='sum')
+	parser.add_argument('--traj_num', help='Number of Traj', type=int, default=4)
+	return parser.parse_args()
 
 
 
 def main(args):
 	env = gym.make(args.env_id)
+	sum = (args.loss == 'sum')
+	print("Sum loss=" + str(sum))
 	expert_buffer = Mujoco_Dset(env, args.expert_path, args.traj_num) # The buffer for the expert -> refer to dataset/mujoco_dset.py
 	actor_replay_buffer = ReplayBuffer(env)
 
@@ -62,7 +65,7 @@ def main(args):
 			else:
 				obs = next_state
 
-		discriminator.train(actor_replay_buffer, expert_buffer, T, batch_size)
+		discriminator.train(actor_replay_buffer, expert_buffer, T, sum ,batch_size)
 
 		td3.train(discriminator, actor_replay_buffer, T, batch_size) #discriminator, replay_buf, iterations, batch_size=100
 

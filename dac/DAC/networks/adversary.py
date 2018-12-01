@@ -62,7 +62,7 @@ class Discriminator(nn.Module):
 	def logsigmoidminus(self, a):
 		return torch.log(1-torch.sigmoid(a))
 
-	def train(self, replay_buf, expert_buf, iterations, batch_size=100):
+	def train(self, replay_buf, expert_buf, iterations, sum=True, batch_size=100):
 		lr = LearningRate.getInstance().getLR()
 		self.adjust_adversary_learning_rate(lr)
 
@@ -87,8 +87,12 @@ class Discriminator(nn.Module):
 			real = self(expert_state_action)
 
 			gradient_penalty = self._gradient_penalty(expert_state_action, state_action)
-			gen_loss = torch.mean(self.logsigmoidminus(fake)).to(device)
-			expert_loss = torch.mean((self.logsigmoid(real) * expert_weights)).to(device)
+			if sum:
+				gen_loss = torch.sum(self.logsigmoidminus(fake)).to(device)
+				expert_loss = torch.sum((self.logsigmoid(real) * expert_weights)).to(device)
+			else:
+				gen_loss = torch.mean(self.logsigmoidminus(fake)).to(device)
+				expert_loss = torch.mean((self.logsigmoid(real) * expert_weights)).to(device)
 
 			logits = torch.cat([fake,real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))
