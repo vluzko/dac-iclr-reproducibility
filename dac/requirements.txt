@@ -11,3 +11,4 @@ theano
 pandas
 matplotlib
 jupyter
+pathlib2
