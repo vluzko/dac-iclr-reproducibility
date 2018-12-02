@@ -109,7 +109,7 @@ class TD3(object):
 	def train(self, discriminator, replay_buf, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2,
 			  noise_clip=0.5, policy_freq=2):
 
-		lr = LearningRate.getInstance().getLR()
+		lr = LearningRate.get_instance().get_learning_rate()
 
 		self.adjust_actor_learning_rate(lr)
 		self.adjust_critic_learning_rate(lr)
@@ -121,8 +121,6 @@ class TD3(object):
 			state = torch.FloatTensor(x).to(device)
 			action = torch.FloatTensor(y).to(device)
 			next_state = torch.FloatTensor(u).to(device)
-			# done = torch.FloatTensor(1 - d).to(device).view(-1,1) # with absorbing state, there is no termination?
-			# reward = torch.FloatTensor(r).to(device)
 
 			reward = self.reward(discriminator, state, action)
 			# Select action according to policy and add clipped noise
@@ -164,12 +162,12 @@ class TD3(object):
 				clip_grad_value_(self.actor.parameters(), self.actor_grad_clipping)
 
 				self.actor_optimizer.step()
-				LearningRate.getInstance().incrementStep()
-				step = LearningRate.getInstance().getStep()
+				LearningRate.get_instance().increment_step()
+				step = LearningRate.get_instance().get_step()
 				if step != 0 and step % self.decay_steps == 0:
 					print("Step=" + str(step) + " -> decay learning rate")
-					LearningRate.getInstance().decay()
-					lr = LearningRate.getInstance().getLR()
+					LearningRate.get_instance().decay()
+					lr = LearningRate.get_instance().get_learning_rate()
 					self.adjust_actor_learning_rate(lr)
 					self.adjust_critic_learning_rate(lr)
 

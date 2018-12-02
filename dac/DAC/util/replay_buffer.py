@@ -10,6 +10,9 @@ class ReplayBuffer(object):
 		self.zeroAction = np.zeros_like(env.action_space.sample(), dtype=np.float32)
 		self.absorbingState = np.zeros((env.observation_space.shape[0]),dtype=np.float32)
 
+	def __len__(self):
+		return len(self.buffer)
+
 	# data = (state, action, next_state)
 	def add(self, data, done):
 		if done:

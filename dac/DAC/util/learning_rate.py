@@ -2,34 +2,34 @@ class LearningRate:
 	__instance = None
 
 	def __init__(self):
-		if LearningRate.__instance != None:
+		if LearningRate.__instance is not None:
 			raise Exception("Singleton instantiation called twice")
 		else:
 			LearningRate.__instance = self
 			self.lr = None
-			self.decayFactor = None
+			self.decay_factor = None
 			self.training_step = 0
 
 	@staticmethod
-	def getInstance():
-		if LearningRate.__instance == None:
+	def get_instance():
+		if LearningRate.__instance is None:
 			LearningRate()
 		return LearningRate.__instance
 
-	def setLR(self, lr):
+	def set_learning_rate(self, lr):
 		self.lr = lr
 
-	def getLR(self):
+	def get_learning_rate(self):
 		return self.lr
 
-	def incrementStep(self):
+	def increment_step(self):
 		self.training_step += 1
 
-	def getStep(self):
+	def get_step(self):
 		return self.training_step
 
-	def setDecay(self, d):
-		self.decayFactor = d
+	def set_decay(self, d):
+		self.decay_factor = d
 
 	def decay(self):
-		self.lr = self.lr * self.decayFactor
+		self.lr = self.lr * self.decay_factor

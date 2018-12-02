@@ -12,3 +12,4 @@ pandas
 matplotlib
 jupyter
 pathlib2
+fire

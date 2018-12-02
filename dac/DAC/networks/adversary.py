@@ -63,7 +63,7 @@ class Discriminator(nn.Module):
 		return torch.log(1-torch.sigmoid(a))
 
 	def train(self, replay_buf, expert_buf, iterations, sum=True, batch_size=100):
-		lr = LearningRate.getInstance().getLR()
+		lr = LearningRate.get_instance().get_learning_rate()
 		self.adjust_adversary_learning_rate(lr)
 
 		for it in range(iterations):
