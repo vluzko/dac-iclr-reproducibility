@@ -3,12 +3,14 @@ from util.replay_buffer import ReplayBuffer
 from networks.adversary import Discriminator
 from networks.TD3 import TD3
 from dataset.mujoco_dset import Mujoco_Dset
+from DAC import config
 
 import gym
 import argparse
 import numpy as np
 import pandas as pd
 import torch
+import time
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -35,7 +37,7 @@ def main(cl_args):
 	batch_size = 100
 
 	# Train for 1 million timesteps. See Figure 4.
-	num_steps = 10000
+	num_steps = 1000000
 
 	state_dim = env.observation_space.shape[0]
 	action_dim = env.action_space.shape[0]
@@ -57,16 +59,15 @@ def main(cl_args):
 
 	# For storing temporary evaluations
 	evaluations = [
-		(evaluate_policy(cl_args.env_id, td3_policy, 0), 0)
+		evaluate_policy(env, td3_policy, 0)
 	]
 
 	evaluate_every = 5000
 	steps_since_eval = 0
 
-	current_state = env.reset()
-	while len(actor_replay_buffer.buffer) < num_steps:
+	while len(actor_replay_buffer) < num_steps:
 		print("\nCurrent step: {}".format(len(actor_replay_buffer.buffer)))
-
+		current_state = env.reset()
 		# Sample from policy; maybe we don't reset the environment -> since this may bias the policy toward initial observations
 		for j in range(trajectory_length):
 			action = td3_policy.select_action(np.array(current_state))
@@ -86,30 +87,53 @@ def main(cl_args):
 		if steps_since_eval >= evaluate_every:
 			steps_since_eval = 0
 
-			evaluation = (evaluate_policy(cl_args.env_id, td3_policy, 0), len(actor_replay_buffer))
+			evaluation = (evaluate_policy(env, td3_policy, 0), len(actor_replay_buffer))
 			evaluations.append(evaluation)
 
 		steps_since_eval += trajectory_length
 
-	evaluations.append(evaluate_policy(cl_args.env_id, td3_policy))
+	last_evaluation = evaluate_policy(env, td3_policy, len(actor_replay_buffer))
+	evaluations.append(last_evaluation)
+
+	store_results(evaluations, len(actor_replay_buffer), cl_args.loss)
+
+
+def store_results(evaluations, number_of_timesteps, loss):
+	"""Store the results of a run.
+
+	Args:
+		evaluations:
+		number_of_timesteps (int):
+		loss (str): The name of the loss function used.
+
+	Returns:
+		None
+	"""
+
 	df = pd.DataFrame.from_records(evaluations)
-	df.columns = ['rewards', 'timestep']
-	df.to_csv('results/{}_{}_tsteps_results'.format(args.env_id, len(actor_replay_buffer)))
+	number_of_trajectories = len(evaluations[0]) - 1
+	columns = ["reward_{}".format(i) for i in range(number_of_trajectories)]
+	columns.append("timestep")
+	df.columns = columns
+
+	timestamp = time.time()
+	results_fname = 'DAC_{}_{}_tsteps_{}_loss_{}_results.csv'.format(args.env_id, number_of_timesteps, loss, timestamp)
+	df.to_csv(str(config.results_dir / results_fname))
 
 
 # Runs policy for X episodes and returns average reward
-def evaluate_policy(env_name, policy, evaluation_trajectories=3):
+def evaluate_policy(env, policy, time_step, evaluation_trajectories=3):
 	"""
 
 	Args:
-		env_name (str):
+		env: The environment being trained on.
 		policy:	The policy being evaluated
-		evaluation_trajectories:
+		time_step (int): The number of time steps the policy has been trained for.
+		evaluation_trajectories (int): The number of trajectories on which to evaluate.
 
 	Returns:
-
+		(list)	- The time_step, followed by all the rewards.
 	"""
-	env = gym.make(env_name)
 	rewards = []
 	for _ in range(evaluation_trajectories):
 		r = 0.
@@ -121,15 +145,7 @@ def evaluate_policy(env_name, policy, evaluation_trajectories=3):
 			r += reward
 		rewards.append(r)
 
-	# avg_reward = np.mean(rewards)
-	# std_dev = np.std(rewards)
-
-	# print ("---------------------------------------")
-	# print ("Evaluation over %d episodes: %f" % (evaluation_trajectories, avg_reward))
-	# print ("---------------------------------------")
-	# with open("results/results.csv", "a") as f:
-	# 	f.write(str(timestep) + "," + str(avg_reward) + "," + str(std_dev) + "\n")
-
+	rewards.append(time_step)
 	return rewards
 
 
