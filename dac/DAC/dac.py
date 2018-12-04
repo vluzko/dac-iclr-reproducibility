@@ -87,7 +87,7 @@ def main(cl_args):
 		if steps_since_eval >= evaluate_every:
 			steps_since_eval = 0
 
-			evaluation = (evaluate_policy(env, td3_policy, 0), len(actor_replay_buffer))
+			evaluation = evaluate_policy(env, td3_policy, len(actor_replay_buffer))
 			evaluations.append(evaluation)
 
 		steps_since_eval += trajectory_length
