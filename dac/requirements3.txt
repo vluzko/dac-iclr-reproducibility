@@ -1,5 +1,5 @@
-gym==0.9.1
-mujoco-py==0.5.7
+gym
+mujoco-py
 tqdm
 torch
 tables

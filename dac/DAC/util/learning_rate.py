@@ -1,4 +1,10 @@
 class LearningRate:
+	"""
+	Attributes:
+		lr (float)
+		decay_factor (float)
+		training_step (int)
+	"""
 	__instance = None
 
 	def __init__(self):
@@ -12,6 +18,11 @@ class LearningRate:
 
 	@staticmethod
 	def get_instance():
+		"""Get the singleton instance.
+
+		Returns:
+			(LearningRate)
+		"""
 		if LearningRate.__instance is None:
 			LearningRate()
 		return LearningRate.__instance

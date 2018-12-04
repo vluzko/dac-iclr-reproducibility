@@ -27,7 +27,7 @@ class Discriminator(nn.Module):
 		self.use_cuda = torch.cuda.is_available()
 
 	def forward(self, x):
-		if not self.use_cuda: x = x.float()
+		# if not self.use_cuda: x = x.float()
 		x = torch.tanh(self.linear1(x))
 		x = torch.tanh(self.linear2(x))
 		# prob = torch.sigmoid(self.linear3(x))
@@ -41,8 +41,8 @@ class Discriminator(nn.Module):
 		return torch.log(probs + 1e-8) - torch.log(1 - probs + 1e-8)
 
 	def adjust_adversary_learning_rate(self, lr):
-		for param_group in self.optimizer.param_groups:
-			param_group['lr'] = lr
+		print("Setting adversary learning rate to: {}".format(lr))
+		self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
 
 	def logit_bernoulli_entropy(self, logits):
 		ent = (1. - torch.sigmoid(logits)) * logits - self.logsigmoid(logits)
@@ -55,8 +55,7 @@ class Discriminator(nn.Module):
 		return torch.log(1 - torch.sigmoid(a))
 
 	def train(self, replay_buf, expert_buf, iterations, sum=True, batch_size=100):
-		lr = LearningRate.get_instance().get_learning_rate()
-		self.adjust_adversary_learning_rate(lr)
+		self.adjust_adversary_learning_rate(LearningRate.get_instance().lr)
 
 		for it in range(iterations):
 			# Sample replay buffer
@@ -80,11 +79,11 @@ class Discriminator(nn.Module):
 
 			gradient_penalty = self._gradient_penalty(expert_state_action, state_action)
 			if sum:
-				gen_loss = torch.sum(self.logsigmoidminus(fake)).to(device)
-				expert_loss = torch.sum((self.logsigmoid(real) * expert_weights)).to(device)
+				gen_loss = torch.sum(self.logsigmoidminus(fake))
+				expert_loss = torch.sum((self.logsigmoid(real) * expert_weights))
 			else:
-				gen_loss = torch.mean(self.logsigmoidminus(fake)).to(device)
-				expert_loss = torch.mean((self.logsigmoid(real) * expert_weights)).to(device)
+				gen_loss = torch.mean(self.logsigmoidminus(fake))
+				expert_loss = torch.mean((self.logsigmoid(real) * expert_weights))
 
 			logits = torch.cat([fake, real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))

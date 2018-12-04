@@ -1,5 +1,5 @@
-from util.learning_rate import LearningRate
-from util.replay_buffer import ReplayBuffer
+from DAC.util.learning_rate import LearningRate
+from DAC.util.replay_buffer import ReplayBuffer
 from networks.adversary import Discriminator
 from networks.TD3 import TD3
 from dataset.mujoco_dset import Mujoco_Dset
