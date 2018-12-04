@@ -1,21 +1,14 @@
 # Based on https://github.com/higgsfield/RL-Adventure-2/blob/master/8.gail.ipynb
 
-import math
-import random
-
-import gym
-import numpy as np
-
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from util.learning_rate import LearningRate
 from torch.autograd import Variable
 from torch.autograd import grad as torch_grad
-from torch.distributions import Normal
+
+from DAC.util.learning_rate import LearningRate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 # entropy_weight = 0.001 from openAI/imiation
 class Discriminator(nn.Module):
@@ -30,7 +23,7 @@ class Discriminator(nn.Module):
 		self.criterion = nn.BCEWithLogitsLoss()
 		self.entropy_weight = entropy_weight
 		self.optimizer = torch.optim.Adam(self.parameters())
-		self.LAMBDA = lamb # used in gradient penalty
+		self.LAMBDA = lamb  # used in gradient penalty
 		self.use_cuda = torch.cuda.is_available()
 
 	def forward(self, x):
@@ -45,8 +38,7 @@ class Discriminator(nn.Module):
 	def reward(self, x):
 		out = self(x)
 		probs = torch.sigmoid(out)
-		return torch.log(probs + 1e-8) - torch.log(1-probs + 1e-8)
-
+		return torch.log(probs + 1e-8) - torch.log(1 - probs + 1e-8)
 
 	def adjust_adversary_learning_rate(self, lr):
 		for param_group in self.optimizer.param_groups:
@@ -60,7 +52,7 @@ class Discriminator(nn.Module):
 		return torch.log(torch.sigmoid(a))
 
 	def logsigmoidminus(self, a):
-		return torch.log(1-torch.sigmoid(a))
+		return torch.log(1 - torch.sigmoid(a))
 
 	def train(self, replay_buf, expert_buf, iterations, sum=True, batch_size=100):
 		lr = LearningRate.get_instance().get_learning_rate()
@@ -94,7 +86,7 @@ class Discriminator(nn.Module):
 				gen_loss = torch.mean(self.logsigmoidminus(fake)).to(device)
 				expert_loss = torch.mean((self.logsigmoid(real) * expert_weights)).to(device)
 
-			logits = torch.cat([fake,real], 0)
+			logits = torch.cat([fake, real], 0)
 			entropy = torch.mean(self.logit_bernoulli_entropy(logits))
 			entropy_loss = -self.entropy_weight * entropy
 
@@ -105,7 +97,9 @@ class Discriminator(nn.Module):
 			total_loss = -(gen_loss + expert_loss) + entropy_loss + gradient_penalty
 
 			if it == 0 or it == iterations - 1:
-				print("Iteration: " + str(it) + " ---- Loss: " + str(total_loss) + " | Expert_loss: " + str(expert_loss) + " | Gen_loss: " + str(gen_loss) + " | Fake Prob: " + str(torch.sigmoid(fake[0])) + " | Real Prob: " + str(torch.sigmoid(real[0])))
+				print("Discr Iteration:  {:03} ---- Loss: {:.5f} | Expert Loss: {:.5f} | Learner Loss: {:.5f} | Learner Prob: {:.5f} | Expert Prob: {:.5f}".format(
+					it, total_loss.item(), expert_loss.item(), gen_loss, torch.sigmoid(fake[0]).item(), torch.sigmoid(real[0]).item()
+				))
 			total_loss.backward()
 			self.optimizer.step()
 
@@ -141,9 +135,8 @@ class Discriminator(nn.Module):
 		# Derivatives of the gradient close to 0 can cause problems because of
 		# the square root, so manually calculate norm and add epsilon
 
-		#gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+		# gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
 
 		# Return gradient penalty
-		#return self.LAMBDA * ((gradients_norm - 1) ** 2).mean()
+		# return self.LAMBDA * ((gradients_norm - 1) ** 2).mean()
 		return self.LAMBDA * ((gradients.norm(2, dim=1) - 1) ** 2).mean()
-

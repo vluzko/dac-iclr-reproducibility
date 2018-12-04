@@ -1,16 +1,15 @@
 # Code based on:
 # https://github.com/sfujim/TD3/blob/master/TD3.py
 
-import numpy as np
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import torch.nn.functional as F
-from util import replay_buffer
-from util.learning_rate import LearningRate
 from torch.nn.utils import clip_grad_value_
 
+from DAC.util import replay_buffer, learning_rate
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class Actor(nn.Module):
 	def __init__(self, state_dim, action_dim, max_action):
@@ -109,7 +108,7 @@ class TD3(object):
 	def train(self, discriminator, replay_buf, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2,
 			  noise_clip=0.5, policy_freq=2):
 
-		lr = LearningRate.get_instance().get_learning_rate()
+		lr = learning_rate.LearningRate.get_instance().get_learning_rate()
 
 		self.adjust_actor_learning_rate(lr)
 		self.adjust_critic_learning_rate(lr)
@@ -141,7 +140,7 @@ class TD3(object):
 			# Compute critic loss
 			critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
 			if it == 0 or it == iterations - 1:
-				print("Critic Iteration: " + str(it) + " ---- Loss: " + str(critic_loss))
+				print("Critic Iteration: {:3} ---- Loss: {:.5f}".format(it, critic_loss.item()))
 			# Optimize the critic
 			self.critic_optimizer.zero_grad()
 			critic_loss.backward()
@@ -153,7 +152,7 @@ class TD3(object):
 				# Compute actor loss
 				actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
 				if it == 0 or it == iterations - 1 or it == iterations - 2:
-					print("Actor Iteration: " + str(it) + " ---- Loss: " + str(actor_loss))
+					print("Actor Iteration:  {:3} ---- Loss: {:.5f}".format(it, actor_loss.item()))
 				# Optimize the actor
 				self.actor_optimizer.zero_grad()
 				actor_loss.backward()
@@ -162,15 +161,14 @@ class TD3(object):
 				clip_grad_value_(self.actor.parameters(), self.actor_grad_clipping)
 
 				self.actor_optimizer.step()
-				LearningRate.get_instance().increment_step()
-				step = LearningRate.get_instance().get_step()
+				learning_rate.LearningRate.get_instance().increment_step()
+				step = learning_rate.LearningRate.get_instance().get_step()
 				if step != 0 and step % self.decay_steps == 0:
 					print("Step=" + str(step) + " -> decay learning rate")
-					LearningRate.get_instance().decay()
-					lr = LearningRate.get_instance().get_learning_rate()
+					learning_rate.LearningRate.get_instance().decay()
+					lr = learning_rate.LearningRate.get_instance().get_learning_rate()
 					self.adjust_actor_learning_rate(lr)
 					self.adjust_critic_learning_rate(lr)
-
 
 				# Update the frozen target models
 				for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
@@ -178,8 +176,6 @@ class TD3(object):
 
 				for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 					target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
-
-
 
 	def save(self, filename, directory):
 		torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))
