@@ -22,6 +22,7 @@ def argsparser():
 	parser.add_argument('--expert_path', type=str, default='trajs/trajs_hopper.h5')
 	parser.add_argument('--loss', type=str, default='sum')
 	parser.add_argument('--traj_num', help='Number of Traj', type=int, default=4)
+	parser.add_argument("--loss_fn", help="Which loss function to use.", type=str, default="cross_entropy")
 	return parser.parse_args()
 
 
@@ -37,7 +38,7 @@ def main(cl_args):
 	batch_size = 100
 
 	# Train for 1 million timesteps. See Figure 4.
-	num_steps = 1000000
+	num_steps = 10000
 
 	state_dim = env.observation_space.shape[0]
 	action_dim = env.action_space.shape[0]
@@ -55,7 +56,7 @@ def main(cl_args):
 	td3_policy = TD3(state_dim, action_dim, max_action, 40, 10 ** 5)
 
 	# Input dim = state_dim + action_dim
-	discriminator = Discriminator(state_dim + action_dim).to(device)
+	discriminator = Discriminator(state_dim + action_dim, aggregate=cl_args.loss, loss=cl_args.loss_fn).to(device)
 
 	# For storing temporary evaluations
 	evaluations = [
@@ -80,7 +81,7 @@ def main(cl_args):
 				actor_replay_buffer.add((current_state, action, next_state), done)
 				current_state = next_state
 
-		discriminator.train(actor_replay_buffer, expert_buffer, trajectory_length, sum_or_mean_loss, batch_size)
+		discriminator.learn(actor_replay_buffer, expert_buffer, trajectory_length, batch_size)
 
 		td3_policy.train(discriminator, actor_replay_buffer, trajectory_length, batch_size)
 
@@ -95,16 +96,17 @@ def main(cl_args):
 	last_evaluation = evaluate_policy(env, td3_policy, len(actor_replay_buffer))
 	evaluations.append(last_evaluation)
 
-	store_results(evaluations, len(actor_replay_buffer), cl_args.loss)
+	store_results(evaluations, len(actor_replay_buffer), cl_args.loss, cl_args.loss_fn)
 
 
-def store_results(evaluations, number_of_timesteps, loss):
+def store_results(evaluations, number_of_timesteps, loss_aggregate, loss_function):
 	"""Store the results of a run.
 
 	Args:
 		evaluations:
 		number_of_timesteps (int):
-		loss (str): The name of the loss function used.
+		loss_aggregate (str): The name of the loss aggregation used. (sum or mean)
+		loss_function (str): The name of the loss function used.
 
 	Returns:
 		None
@@ -117,7 +119,7 @@ def store_results(evaluations, number_of_timesteps, loss):
 	df.columns = columns
 
 	timestamp = time.time()
-	results_fname = 'DAC_{}_{}_tsteps_{}_loss_{}_results.csv'.format(args.env_id, number_of_timesteps, loss, timestamp)
+	results_fname = 'DAC_{}_{}_tsteps_{}_loss_{}_agg_{}_results.csv'.format(args.env_id, number_of_timesteps, loss_function, loss_aggregate, timestamp)
 	df.to_csv(str(config.results_dir / results_fname))
 
 
