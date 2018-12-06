@@ -60,11 +60,11 @@ class Discriminator(nn.Module):
 		ent = (1. - torch.sigmoid(logits)) * logits - self.logsigmoid(logits)
 		return ent
 
-	# def logsigmoid(self, a):
-	# 	return torch.log(torch.sigmoid(a))
-	#
-	# def logsigmoidminus(self, a):
-	# 	return torch.log(1 - torch.sigmoid(a))
+	def logsigmoid(self, a):
+		return torch.log(torch.sigmoid(a))
+
+	def logsigmoidminus(self, a):
+		return torch.log(1 - torch.sigmoid(a))
 
 	def original_loss(self, pred_on_learner, pred_on_expert, expert_weights):
 		"""The original loss function given in the paper.
