@@ -38,7 +38,7 @@ def main(cl_args):
 	batch_size = 100
 
 	# Train for 1 million timesteps. See Figure 4.
-	num_steps = 10000
+	num_steps = 1000000
 
 	state_dim = env.observation_space.shape[0]
 	action_dim = env.action_space.shape[0]
