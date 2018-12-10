@@ -63,7 +63,7 @@ def main(cl_args):
 		evaluate_policy(env, td3_policy, 0)
 	]
 
-	evaluate_every = 5000
+	evaluate_every = 1000
 	steps_since_eval = 0
 
 	while len(actor_replay_buffer) < num_steps:
@@ -124,7 +124,7 @@ def store_results(evaluations, number_of_timesteps, loss_aggregate, loss_functio
 
 
 # Runs policy for X episodes and returns average reward
-def evaluate_policy(env, policy, time_step, evaluation_trajectories=3):
+def evaluate_policy(env, policy, time_step, evaluation_trajectories=6):
 	"""
 
 	Args:
@@ -146,6 +146,7 @@ def evaluate_policy(env, policy, time_step, evaluation_trajectories=3):
 			obs, reward, done, _ = env.step(action)
 			r += reward
 		rewards.append(r)
+	print("Average reward at timestep {}: {}".format(time_step, np.mean(rewards)))
 
 	rewards.append(time_step)
 	return rewards

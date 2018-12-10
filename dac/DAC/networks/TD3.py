@@ -108,7 +108,7 @@ class TD3(object):
 		states_actions = torch.cat([states, actions], 1).to(device)
 		return discriminator.reward(states_actions)
 
-	def train(self, discriminator, replay_buf, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2,
+	def train(self, discriminator, replay_buf, iterations, batch_size=100, discount=0.8, tau=0.005, policy_noise=0.2,
 			  noise_clip=0.5, policy_freq=2):
 
 		lr_tracker = learning_rate.LearningRate.get_instance()
@@ -129,7 +129,7 @@ class TD3(object):
 			noise = torch.FloatTensor(y).data.normal_(0, policy_noise).to(device)
 			noise = noise.clamp(-noise_clip, noise_clip)
 			next_action = (self.actor_target(next_state) + noise).clamp(-self.max_action, self.max_action)
-			next_action = next_action.clamp(-self.max_action, self.max_action)
+			# next_action = next_action.clamp(-self.max_action, self.max_action)
 
 			# Compute the target Q value
 			target_Q1, target_Q2 = self.critic_target(next_state, next_action)

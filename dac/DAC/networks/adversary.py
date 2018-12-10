@@ -14,6 +14,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class Discriminator(nn.Module):
 	def __init__(self, num_inputs, hidden_size=100, lamb=10, entropy_weight=0.001,
 				 aggregate="sum", loss="cross_entropy"):
+		"""
+
+		Args:
+			num_inputs:
+			hidden_size:
+			lamb:
+			entropy_weight:
+			aggregate (str): The name of the aggregation method to use. 'mean' or 'sum'.
+			loss (str): The name of the loss function to use. 'original', 'without_typo', or 'cross_entropy'
+		"""
 		super(Discriminator, self).__init__()
 
 		self.linear1 = nn.Linear(num_inputs, hidden_size)

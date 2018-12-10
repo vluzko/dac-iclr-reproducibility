@@ -19,7 +19,7 @@ def run_random_policy(env_id="Hopper-v1", evaluations=1000, trajectories=3):
 	"""
 	env = gym.make(env_id)
 	rewards = []
-	for i in range(evaluations):
+	for i in range(evaluations + 1):
 		traj_rewards = []
 		for _ in range(trajectories):
 			obs = env.reset()
