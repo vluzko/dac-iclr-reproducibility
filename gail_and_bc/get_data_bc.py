@@ -18,5 +18,5 @@ for f in bcFiles:
 timesteps.sort()
 
 for i in timesteps:
-    os.system('python getData.py --outputFile=BC --task=evaluate --data_timestep=' + str(
+    os.system('python get_data.py --outputFile=BC --task=evaluate --data_timestep=' + str(
         i) + ' --load_model_path=' + checkpointBC + bcPrefix + str(i))

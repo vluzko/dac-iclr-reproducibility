@@ -1,6 +1,6 @@
-'''
-The code is used to train BC imitator, or pretrained GAIL imitator
-'''
+"""This code is based heavily on OpenAI's TRPO implementation.
+See here for the original code: https://github.com/openai/baselines/tree/master/baselines/trpo_mpi/.
+"""
 
 import argparse
 import tempfile
@@ -11,15 +11,16 @@ from tqdm import tqdm
 
 import tensorflow as tf
 
-from gail_and_bc.gail import mlp_policy
-from gail_and_bc import bench
-from gail_and_bc import logger
-from common import util
-from gail_and_bc.common import set_global_seeds, tf_util as U
-from gail_and_bc.common.misc_util import boolean_flag
-from gail_and_bc.common.mpi_adam import MpiAdam
+from baselines.gail import mlp_policy
+from baselines import bench
+from baselines import logger
+from baselines.common import set_global_seeds, tf_util as U
+from baselines.common.misc_util import boolean_flag
+from baselines.common.mpi_adam import MpiAdam
+from baselines.gail.dataset.mujoco_dset import Mujoco_Dset
+
 from run_mujoco import runner
-from gail_and_bc.gail.dataset.mujoco_dset import Mujoco_Dset
+import util
 
 
 def argsparser():
@@ -44,8 +45,7 @@ def learn(env, policy_func, dataset, optim_batch_size=1024, max_iters=1e4,
           adam_epsilon=1e-5, optim_stepsize=3e-4,
           ckpt_dir=None, log_dir=None, task_name=None,
           verbose=False):
-
-    val_per_iter = int(max_iters/10)
+    val_per_iter = int(max_iters / 10)
     ob_space = env.observation_space
     ac_space = env.action_space
     pi = policy_func("pi", ob_space, ac_space)  # Construct network for new policy
@@ -53,10 +53,10 @@ def learn(env, policy_func, dataset, optim_batch_size=1024, max_iters=1e4,
     ob = U.get_placeholder_cached(name="ob")
     ac = pi.pdtype.sample_placeholder([None])
     stochastic = U.get_placeholder_cached(name="stochastic")
-    loss = tf.reduce_mean(tf.square(ac-pi.ac))
+    loss = tf.reduce_mean(tf.square(ac - pi.ac))
     var_list = pi.get_trainable_variables()
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
-    lossandgrad = U.function([ob, ac, stochastic], [loss]+[U.flatgrad(loss, var_list)])
+    lossandgrad = U.function([ob, ac, stochastic], [loss] + [U.flatgrad(loss, var_list)])
 
     U.initialize()
     adam.sync()
@@ -97,6 +97,7 @@ def main(args):
     def policy_fn(name, ob_space, ac_space, reuse=False):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
                                     reuse=reuse, hid_size=args.policy_hidden_size, num_hid_layers=2)
+
     env = bench.Monitor(env, logger.get_dir() and
                         osp.join(logger.get_dir(), "monitor.json"))
     env.seed(args.seed)
@@ -113,14 +114,14 @@ def main(args):
                           log_dir=args.log_dir,
                           task_name=task_name,
                           verbose=True)
-    avg_len, avg_ret = runner(env,
-                              policy_fn,
-                              savedir_fname,
-                              timesteps_per_batch=1024,
-                              number_trajs=10,
-                              stochastic_policy=args.stochastic_policy,
-                              save=args.save_sample,
-                              reuse=True)
+    avg_len, avg_ret, ret_std = runner(env,
+                                       policy_fn,
+                                       savedir_fname,
+                                       timesteps_per_batch=1024,
+                                       number_trajs=10,
+                                       stochastic_policy=args.stochastic_policy,
+                                       save=args.save_sample,
+                                       reuse=True)
 
 
 if __name__ == '__main__':

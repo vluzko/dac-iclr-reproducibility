@@ -34,29 +34,27 @@ Example (Hopper-v2, 4 expert trajectories, saves every 5 iterations, runs for 1,
 
 ## Evaluating GAIL
     ```
-    python run_getDataGAIL.py
+    python get_data_gail.py
     ```
 
-**NOTE: This will evaluate for every timestep saved in checkpoint/{GAIL_DIR}/. Running this code will generate gail.csv**
+This will evaluate for every timestep saved in checkpoint/{GAIL_DIR}/. Running this code will generate the file `gail.csv` containing all of the results for GAIL.
 
 ## Run Behavioural Cloning
     ```
     python behavior_clone.py --env_id=Hopper-v2 --expert_path=data/deterministic.trpo.Hopper.0.00.npz --traj_limitation=4 --BC_max_iter=1100
     ```
     
-**NOTE: Change behavior_clone.py line 71 if you want to save at different iterations. Currently, saves every 50 iterations. Also, max iterations = 1100, since the batch size is 1024. Does this mean 1100 x 1024 timesteps?**
-
 **NOTE: Behavioural clone fails after training, but the results are still saved. The failure occurs during the evaluation of the training**
 
 ## Evaluating BC
     ```
-    python run_getDataBC.py
+    python get_data_bc.py
     ```
 
-**NOTE: This generates BC.csv**
+This stores results in `BC.csv`.
 
 
-9. Plotting:
+## Plotting
     ```
     cd plot
     jupyter notebook
