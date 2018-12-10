@@ -1,0 +1,6 @@
+baselines
+jupyter
+mpi4py
+gym
+tqdm
+numpy

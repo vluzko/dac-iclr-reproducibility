@@ -1,5 +1,5 @@
 # Discriminator-Actor-Critic Reproducibility
 
-Refer to baselines for our baselines code (BC and GAIL)
+Refer to `gail_and_bc` for our GAIL and behavioral cloning code.
 
-Refer to DAC for our DAC code
+Refer to `dac` for our Discriminator-Actor-Critic.
