@@ -1,0 +1,7 @@
+Used:
+
+https://github.com/sfujim/TD3
+https://github.com/higgsfield/RL-Adventure-2/blob/master/8.gail.ipynb
+https://github.com/EmilienDupont/wgan-gp/blob/master/training.py
+
+openAI imitation, baselines

@@ -1,0 +1,14 @@
+gym
+mujoco-py
+tqdm
+torch
+tables
+h5py
+pyyaml
+numpy
+scipy
+theano
+pandas
+matplotlib
+jupyter
+pathlib2

@@ -8,3 +8,9 @@ baselines/pip-selfcheck.json
 baselines/baselines/data/*.npz
 .DS_Store
 __pycache__
+*.pyc
+*.h5
+*.egg-info
+imitation/
+our_base/
+data/

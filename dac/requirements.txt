@@ -1,0 +1,15 @@
+gym==0.9.1
+mujoco-py==0.5.7
+tqdm
+torch
+tables
+h5py
+pyyaml
+numpy
+scipy
+theano
+pandas
+matplotlib
+jupyter
+pathlib2
+fire
