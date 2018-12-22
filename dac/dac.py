@@ -80,6 +80,7 @@ def main(cl_args):
             next_state, reward, done, _ = env.step(action)
 
             if done:
+                actor_replay_buffer.add((current_state, action, next_state), done)
                 actor_replay_buffer.addAbsorbing()
                 current_state = env.reset()
             else:
