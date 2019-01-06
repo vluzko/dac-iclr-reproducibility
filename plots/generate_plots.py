@@ -31,7 +31,7 @@ def figure_3():
             average_random_reward = random.iloc[:, :-1].mean(axis=1)
             average_random_reward.index = random['timestep']
 
-            translated_rewards = avg_reward.values - average_random_reward.loc[timesteps].values
+            translated_rewards = avg_reward.values - average_random_reward.iloc[:len(avg_reward)].values
             normalized_rewards = translated_rewards / expert_score
             ax.plot(timesteps, normalized_rewards, label='Batch {}'.format(agg.capitalize()))
 

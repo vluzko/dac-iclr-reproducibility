@@ -68,10 +68,11 @@ def main(cl_args):
         evaluate_policy(env, td3_policy, 0)
     ]
 
-    evaluate_every = 1000
+    total_steps = 0
+    evaluate_every = 5000
     steps_since_eval = 0
 
-    while len(actor_replay_buffer) < num_steps:
+    while total_steps < num_steps:
         print("\nCurrent step: {}".format(len(actor_replay_buffer.buffer)))
         current_state = env.reset()
         # Sample from policy; maybe we don't reset the environment -> since this may bias the policy toward initial observations
@@ -94,12 +95,13 @@ def main(cl_args):
         if steps_since_eval >= evaluate_every:
             steps_since_eval = 0
 
-            evaluation = evaluate_policy(env, td3_policy, len(actor_replay_buffer))
+            evaluation = evaluate_policy(env, td3_policy, total_steps)
             evaluations.append(evaluation)
 
+        total_steps += trajectory_length
         steps_since_eval += trajectory_length
 
-    last_evaluation = evaluate_policy(env, td3_policy, len(actor_replay_buffer))
+    last_evaluation = evaluate_policy(env, td3_policy, total_steps)
     evaluations.append(last_evaluation)
 
     store_results(evaluations, len(actor_replay_buffer), cl_args.loss, cl_args.loss_fn)
@@ -131,7 +133,7 @@ def store_results(evaluations, number_of_timesteps, loss_aggregate, loss_functio
 
 
 # Runs policy for X episodes and returns average reward
-def evaluate_policy(env, policy, time_step, evaluation_trajectories=6):
+def evaluate_policy(env, policy, time_step, evaluation_trajectories=3):
     """
 
     Args:
